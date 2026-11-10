@@ -208,6 +208,18 @@
       for (var i = 0; i < o.f.length; i++) { circ(c, o.f[i][0], o.f[i][1], 1.8); fs(c, o.f[i][2]); }
     },
     lily: function (c) { circ(c, 0, 0, 3.4); fs(c, '#5aa865', 0.5); },
+    bird: function (c, o) {
+      var f = o.flap == null ? 1 : o.flap, span = f < 0 ? 0 : 3 + f * 5;
+      c.beginPath(); c.moveTo(-2, 4.5); c.lineTo(0, 9); c.lineTo(2, 4.5); c.closePath(); fs(c, o.col, 0.5);
+      if (span > 0) {
+        c.beginPath(); c.ellipse(-2.5 - span / 2, 0.5, span / 2 + 1, 2.4, 0.25 - f * 0.3, 0, TAU); fs(c, o.col, 0.6);
+        c.beginPath(); c.ellipse(2.5 + span / 2, 0.5, span / 2 + 1, 2.4, -0.25 + f * 0.3, 0, TAU); fs(c, o.col, 0.6);
+      }
+      c.beginPath(); c.ellipse(0, 0.5, 2.8, 4.8, 0, 0, TAU); fs(c, o.col, 0.8);
+      c.beginPath(); c.ellipse(0, 1.2, 1.5, 2.8, 0, 0, TAU); fs(c, o.belly);
+      circ(c, 0, -4, 2.3); fs(c, o.col, 0.6);
+      c.beginPath(); c.moveTo(-0.7, -5.9); c.lineTo(0.7, -5.9); c.lineTo(0, -7.6); c.closePath(); fs(c, '#f4a261', 0.3);
+    },
 
     /* street and park extras */
     pigeon: function (c) { c.beginPath(); c.ellipse(0, 0, 2.2, 3.4, 0, 0, TAU); fs(c, '#8d93a0', 0.5); circ(c, 0, -3.2, 1.4); fs(c, '#6b7280', 0.4); c.beginPath(); c.moveTo(-0.5, -4.4); c.lineTo(0.5, -4.4); c.lineTo(0, -5.5); c.closePath(); fs(c, '#e0a040'); },
@@ -330,6 +342,8 @@
       decoy: function (h) { return { kind: 'trophy', o: { col: h.pick(['#c9ced6', '#d98b5f']) } }; } },
     guitar: { label: 'Red Guitar', desc: 'A red guitar left out on the floor', kind: 'guitar', r: 10, where: ['indoor', 'tower'], o: { col: '#e63946' }, dec: 8,
       decoy: function (h) { return { kind: 'guitar', o: { col: h.pick(['#d9b382', '#1b1b1b', '#1f6fff', '#f4a261']) } }; } },
+    bird: { label: 'Bluebird', desc: 'A blue bird with a yellow chest. It flies around, so watch where it lands', kind: 'bird', r: 8, where: ['air'], o: { col: '#1f6fff', belly: '#ffd23f' }, dec: 0,
+      decoy: function (h) { return { kind: 'bird', o: { col: '#1f6fff', belly: '#ffffff' } }; } },
     fish: { label: 'Goldfish Bowl', desc: 'A fishbowl with one orange goldfish', kind: 'fishbowl', r: 7, where: ['indoor', 'tower'], o: { col: '#ff8c1a' }, dec: 8,
       decoy: function (h) { return { kind: 'fishbowl', o: { col: h.pick(['#1f6fff', '#2d9a5f', '#9b5de5', '#f4f4f4']) } }; } }
   };
@@ -339,3 +353,69 @@
     normal: { n: 10, crowd: 1, decoy: 1, label: 'Normal' },
     hard: { n: 16, crowd: 1.35, decoy: 1.8, label: 'Hard' }
   };
+
+  /* the clock that live sprites (doors, birds) read; the engine sets it every frame */
+  var CS_NOW = 0;
+  var BIRDS = [{ col: '#e63946', belly: '#f4a261' }, { col: '#8d93a0', belly: '#d6d9de' }, { col: '#2b2b2b', belly: '#4b5260' }, { col: '#ffd23f', belly: '#ffffff' }, { col: '#1f6fff', belly: '#ffffff' }, { col: '#9a6a3a', belly: '#e9c46a' }];
+
+  /* what each thing does when tapped: [motion, sound, word bubble] */
+  var REACT = {
+    car: ['jiggle', 'honk', 'HONK!'], dog: ['hop', 'bark', 'WOOF!'], cat: ['hop', 'meow', 'MEOW'], duck: ['jiggle', 'quack', 'QUACK'],
+    balloon: ['pop', 'pop', 'POP!'], teddy: ['spin', 'squeak', 'SQUEAK'], person: ['jiggle', 'hey', 'HEY!'], bike: ['jiggle', 'bell', 'RING RING'],
+    umbrella: ['spin', 'boing', null], crown: ['spin', 'chime', 'SHINY'], key: ['spin', 'chime', 'JINGLE'], trophy: ['spin', 'chime', 'SHINY'],
+    pizza: ['jiggle', 'boing', null], sneaker: ['hop', 'squeak', null], icecream: ['jiggle', 'bloop', 'SPLAT'], fishbowl: ['jiggle', 'bloop', 'BLUB'],
+    guitar: ['jiggle', 'strum', 'STRUM'], flamingo: ['hop', 'boing', null], plane: ['spin', 'whoosh', 'WHOOSH'], paper: ['spin', 'whoosh', null],
+    ufo: ['hop', 'warble', 'BEEP BOOP'], castle: ['jiggle', 'crumble', null], bucket: ['hop', 'boing', null], shovel: ['jiggle', 'boing', null],
+    ball: ['hop', 'boing', 'BOING'], toytruck: ['jiggle', 'beep', 'BEEP BEEP'], telescope: ['spin', 'boing', null], dish: ['spin', 'boing', null],
+    skylight: ['crack', 'crash', 'CRASH'], pigeon: ['fly', 'flutter', null], tree: ['jiggle', 'rustle', null], trash: ['jiggle', 'clang', 'CLANG'],
+    hydrant: ['jiggle', 'clang', null], mailbox: ['jiggle', 'beep', null], stroller: ['jiggle', 'squeak', null], piano: ['jiggle', 'strum', 'PLINK'],
+    tv: ['jiggle', 'beep', null], fridge: ['jiggle', 'clang', null], rack: ['jiggle', 'beep', null], billiard: ['jiggle', 'clack', 'CLACK'],
+    bird: ['jiggle', 'chirp', 'TWEET'], stall: ['jiggle', 'boing', null], bench: ['jiggle', 'clang', null]
+  };
+
+  /* little synth sound effects, no sound files */
+  var SFX = (function () {
+    var ac = null, on = true;
+    function ctx() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+    function tone(f, d, type, vol, f2, delay) {
+      var a = ctx(); if (!a) return; var t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.02);
+    }
+    function noise(d, freq, ftype, vol, delay) {
+      var a = ctx(); if (!a) return; var t = a.currentTime + (delay || 0), n = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, n, a.sampleRate), dt = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) dt[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      s.buffer = buf; f.type = ftype || 'bandpass'; f.frequency.value = freq || 1000; g.gain.value = vol || 0.3;
+      s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+    }
+    var LIB = {
+      honk: function () { tone(392, 0.18, 'square', 0.09); tone(494, 0.18, 'square', 0.07); tone(392, 0.22, 'square', 0.09, null, 0.24); tone(494, 0.22, 'square', 0.07, null, 0.24); },
+      bark: function () { noise(0.1, 800, 'bandpass', 0.6); tone(260, 0.1, 'sawtooth', 0.12, 150); noise(0.1, 800, 'bandpass', 0.6, 0.18); tone(280, 0.1, 'sawtooth', 0.12, 160, 0.18); },
+      meow: function () { tone(600, 0.18, 'sine', 0.15, 900); tone(900, 0.25, 'sine', 0.13, 480, 0.18); },
+      quack: function () { tone(300, 0.11, 'sawtooth', 0.1, 210); tone(300, 0.11, 'sawtooth', 0.1, 210, 0.15); },
+      pop: function () { noise(0.07, 3000, 'highpass', 0.8); tone(900, 0.06, 'square', 0.1, 120); },
+      squeak: function () { tone(1300, 0.09, 'sine', 0.14, 1800); tone(1800, 0.1, 'sine', 0.12, 1200, 0.1); },
+      hey: function () { tone(280, 0.16, 'triangle', 0.15, 420); },
+      bell: function () { tone(2100, 0.35, 'sine', 0.1); tone(2650, 0.25, 'sine', 0.05); tone(2100, 0.35, 'sine', 0.1, null, 0.18); },
+      chime: function () { tone(1046, 0.3, 'sine', 0.1); tone(1318, 0.3, 'sine', 0.1, null, 0.08); tone(1568, 0.4, 'sine', 0.1, null, 0.16); },
+      boing: function () { tone(150, 0.28, 'sine', 0.18, 620); },
+      bloop: function () { tone(300, 0.14, 'sine', 0.16, 820); },
+      strum: function () { [196, 247, 294, 392].forEach(function (f, i) { tone(f, 0.7, 'triangle', 0.08, null, i * 0.035); }); },
+      whoosh: function () { noise(0.35, 1200, 'bandpass', 0.35); },
+      warble: function () { tone(400, 0.2, 'sine', 0.12, 1200); tone(1200, 0.25, 'sine', 0.12, 350, 0.2); },
+      crumble: function () { noise(0.3, 300, 'lowpass', 0.6); },
+      beep: function () { tone(880, 0.08, 'square', 0.07); tone(880, 0.08, 'square', 0.07, null, 0.14); },
+      crash: function () { noise(0.45, 4000, 'highpass', 0.6); for (var i = 0; i < 6; i++) tone(2000 + Math.random() * 3000, 0.12, 'triangle', 0.05, null, Math.random() * 0.25); },
+      flutter: function () { for (var i = 0; i < 7; i++) noise(0.035, 1500, 'bandpass', 0.4, i * 0.045); },
+      rustle: function () { noise(0.4, 2500, 'bandpass', 0.25); },
+      clang: function () { tone(520, 0.3, 'square', 0.05, 480); tone(1310, 0.25, 'triangle', 0.06); },
+      clack: function () { noise(0.03, 2500, 'bandpass', 0.8); noise(0.03, 2500, 'bandpass', 0.6, 0.09); },
+      chirp: function () { tone(2600, 0.07, 'sine', 0.1, 3600); tone(2800, 0.07, 'sine', 0.1, 3800, 0.1); },
+      creak: function () { tone(110, 0.45, 'sawtooth', 0.04, 190); },
+      found: function () { tone(784, 0.15, 'sine', 0.12); tone(1175, 0.3, 'sine', 0.12, null, 0.1); },
+      miss: function () { tone(150, 0.12, 'triangle', 0.08, 120); }
+    };
+    return { play: function (k) { if (on && LIB[k]) try { LIB[k](); } catch (e) { } }, set: function (v) { on = !!v; if (on) ctx(); } };
+  })();
