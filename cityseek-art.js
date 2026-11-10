@@ -245,6 +245,35 @@
     },
     toytruck: function (c, o) { c.fillStyle = INK; c.fillRect(-3.9, -3.6, 1, 2.2); c.fillRect(2.9, -3.6, 1, 2.2); c.fillRect(-3.9, 2, 1, 2.2); c.fillRect(2.9, 2, 1, 2.2); rr(c, -3, -5.2, 6, 10.4, 1); fs(c, o.col, 0.6); rr(c, -2.3, -4.6, 4.6, 3, 0.6); fs(c, '#bfe3ff', 0.4); },
 
+
+    /* office things */
+    mug: function (c, o) { c.beginPath(); c.arc(5, 0, 2.4, -1.2, 1.2); c.lineWidth = 1.8; c.strokeStyle = INK; c.stroke(); c.lineWidth = 0.9; c.strokeStyle = o.col; c.stroke(); circ(c, 0, 0, 4.4); fs(c, o.col, 0.8); circ(c, 0, 0, 3); fs(c, '#6b3e1f'); if (o.steam) { c.beginPath(); c.moveTo(-1.5, -5); c.quadraticCurveTo(-3, -7.5, -1, -9.5); c.moveTo(1.5, -5); c.quadraticCurveTo(0, -7.5, 2, -9.5); c.lineWidth = 0.7; c.strokeStyle = 'rgba(26,26,46,.45)'; c.stroke(); } },
+    laptop: function (c, o) { rr(c, -8, -1, 16, 9, 1.2); fs(c, '#c9ced6', 0.8); rr(c, -6.5, 1, 13, 5, 0.6); fs(c, '#9aa1ab'); rr(c, -8, -9, 16, 8, 1.2); fs(c, '#d6d9de', 0.8); if (o.sticker) { circ(c, 0, -5, 2); fs(c, o.sticker, 0.4); } },
+    stapler: function (c, o) { rr(c, -7.5, -2.6, 15, 5.2, 2); fs(c, '#2b2d42', 0.6); rr(c, -7, -2, 13, 4, 2); fs(c, o.col, 0.6); circ(c, 4.5, 0, 0.9); fs(c, '#c9ced6'); },
+    notes: function (c, o) { c.beginPath(); c.moveTo(-4.5, -4.5); c.lineTo(4.5, -4.5); c.lineTo(4.5, 2); c.lineTo(2, 4.5); c.lineTo(-4.5, 4.5); c.closePath(); fs(c, o.col, 0.6); c.beginPath(); c.moveTo(4.5, 2); c.lineTo(2, 2); c.lineTo(2, 4.5); fs(c, 'rgba(0,0,0,.15)', 0.4); line(c, -3, -2, 2.5, -2, 0.4, 'rgba(26,26,46,.4)'); line(c, -3, 0, 1.5, 0, 0.4, 'rgba(26,26,46,.4)'); },
+    cooler: function (c) { rr(c, -7, -7, 14, 14, 2); fs(c, '#f4f4f4', 1); circ(c, 0, 0, 5); fs(c, '#8ecae6', 0.8); circ(c, 0, 0, 2); fs(c, '#d6eef8', 0.4); },
+    printer: function (c) { rr(c, -10, -7, 20, 14, 2); fs(c, '#9aa1ab', 1); rr(c, -6, -9, 12, 5, 0.5); fs(c, '#ffffff', 0.5); rr(c, -7, 1, 14, 3, 1); fs(c, '#2b2d42'); c.fillStyle = '#3ddc84'; c.fillRect(6, -4, 2, 2); },
+    cabinet: function (c) { rr(c, -7, -9, 14, 18, 1); fs(c, '#b8c0cc', 1); line(c, -7, -3, 7, -3, 0.6); line(c, -7, 3, 7, 3, 0.6); [-6, 0, 6].forEach(function (y) { rr(c, -2, y - 1, 4, 1.6, 0.5); fs(c, '#4b5260'); }); },
+    /* outdoor things */
+    soccer: function (c, o) { circ(c, 0, 0, 4.4); fs(c, '#ffffff', 0.8); c.fillStyle = INK; c.beginPath(); for (var k = 0; k < 5; k++) { var a = k / 5 * TAU - Math.PI / 2; c.lineTo(Math.cos(a) * 1.7, Math.sin(a) * 1.7); } c.closePath(); c.fill(); for (var j = 0; j < 5; j++) { var b = j / 5 * TAU + 0.3; circ(c, Math.cos(b) * 3.6, Math.sin(b) * 3.6, 0.9); c.fill(); } },
+    volley: function (c, o) { circ(c, 0, 0, 4.4); fs(c, o.col || '#ffffff', 0.8); c.beginPath(); c.arc(-4, -1, 4.6, -0.6, 1.2); c.moveTo(4.4, 0); c.arc(4, 2, 4.6, 2.4, 4.2); c.lineWidth = 0.5; c.strokeStyle = INK; c.stroke(); },
+    basketball: function (c, o) { circ(c, 0, 0, 4.6); fs(c, o.col || '#f08a24', 0.8); line(c, -4.6, 0, 4.6, 0, 0.5); line(c, 0, -4.6, 0, 4.6, 0.5); c.beginPath(); c.arc(-6, 0, 4.4, -0.8, 0.8); c.moveTo(1.6, -3.4); c.arc(6, 0, 4.4, 2.34, 3.94); c.lineWidth = 0.5; c.strokeStyle = INK; c.stroke(); },
+    frisbee: function (c, o) { circ(c, 0, 0, 5.4); fs(c, o.col, 0.8); circ(c, 0, 0, 3.6); c.lineWidth = 0.7; c.strokeStyle = 'rgba(255,255,255,.7)'; c.stroke(); },
+    kite: function (c, o) { c.beginPath(); c.moveTo(0, 9); c.quadraticCurveTo(3, 13, -1, 16); c.quadraticCurveTo(2, 19, 0, 22); c.lineWidth = 0.6; c.strokeStyle = INK; c.stroke(); [[0, -8], [6, 0], [0, 9], [-6, 0]].forEach(function (p, i, A) { var q = A[(i + 1) % 4]; c.beginPath(); c.moveTo(0, 0); c.lineTo(p[0], p[1]); c.lineTo(q[0], q[1]); c.closePath(); fs(c, o.cols[i], 0.6); }); rr(c, -1.5, 14, 3, 2, 0.5); fs(c, o.cols[0], 0.3); rr(c, -1.5, 19, 3, 2, 0.5); fs(c, o.cols[2], 0.3); },
+    cone: function (c, o) { rr(c, -5.5, -5.5, 11, 11, 1.5); fs(c, '#2b2d42', 0.6); circ(c, 0, 0, 4.2); fs(c, '#ff7a1a', 0.7); circ(c, 0, 0, 2.6); c.lineWidth = 1.3; c.strokeStyle = o.stripe; c.stroke(); circ(c, 0, 0, 1); fs(c, '#ff7a1a', 0.4); },
+    goal: function (c, o) { c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.strokeRect(-o.w / 2, -5, o.w, 10); c.lineWidth = 0.4; c.strokeStyle = 'rgba(255,255,255,.8)'; c.beginPath(); for (var x = -o.w / 2 + 3; x < o.w / 2; x += 3) { c.moveTo(x, -5); c.lineTo(x, 5); } c.stroke(); },
+    hoop: function (c) { rr(c, -7, -2, 14, 3, 0.5); fs(c, '#ffffff', 0.7); circ(c, 0, 5, 3.4); c.lineWidth = 1.2; c.strokeStyle = '#e63946'; c.stroke(); },
+    /* random things */
+    donut: function (c, o) { circ(c, 0, 0, 5.2); fs(c, '#d9a066', 0.8); circ(c, 0, 0, 4.2); fs(c, o.icing); circ(c, 0, 0, 1.8); fs(c, '#d9a066', 0.6); if (o.spr) for (var k = 0; k < 8; k++) { var a = k / 8 * TAU + 0.2; c.save(); c.translate(Math.cos(a) * 3, Math.sin(a) * 3); c.rotate(a * 2); c.fillStyle = ['#1f6fff', '#ffd23f', '#2d9a5f', '#ffffff'][k % 4]; c.fillRect(-0.9, -0.3, 1.8, 0.6); c.restore(); } },
+    banana: function (c, o) { c.beginPath(); c.arc(0, -6, 8, 0.55, 2.6); c.arc(0, -6, 5.2, 2.6, 0.55, true); c.closePath(); fs(c, o.col, 0.7); circ(c, 6.9, -2, 0.9); fs(c, '#6b4f3a'); },
+    pineapple: function (c, o) { [[-2.5, -5, -0.4], [0, -6.5, 0], [2.5, -5, 0.4]].forEach(function (l) { c.beginPath(); c.ellipse(l[0], l[1], 1.3, 3.4, l[2], 0, TAU); fs(c, '#2d9a5f', 0.5); }); c.beginPath(); c.ellipse(0, 1.5, 4.2, 5.4, 0, 0, TAU); fs(c, o.col, 0.8); c.save(); c.clip(); c.strokeStyle = 'rgba(120,70,0,.5)'; c.lineWidth = 0.5; c.beginPath(); for (var k = -8; k < 8; k += 2.4) { c.moveTo(k - 5, -5); c.lineTo(k + 5, 7); c.moveTo(k + 5, -5); c.lineTo(k - 5, 7); } c.stroke(); c.restore(); },
+    coconut: function (c) { circ(c, 0, 0, 4.6); fs(c, '#7a5230', 0.8); circ(c, -1.2, -1, 0.6); fs(c, '#3d2a1a'); circ(c, 1.2, -1, 0.6); fs(c, '#3d2a1a'); circ(c, 0, 1, 0.6); fs(c, '#3d2a1a'); },
+    chicken: function (c, o) { c.beginPath(); c.ellipse(0, 1.5, 2.6, 6.5, 0, 0, TAU); fs(c, o.col, 0.8); circ(c, 0, -5.5, 2.4); fs(c, o.col, 0.7); c.beginPath(); c.moveTo(-1, -8); c.lineTo(0, -9.6); c.lineTo(1, -8); c.closePath(); fs(c, '#e63946', 0.3); c.beginPath(); c.moveTo(-0.8, -3.6); c.lineTo(0.8, -3.6); c.lineTo(0, -2); c.closePath(); fs(c, '#f4a261', 0.3); line(c, -1, 7.5, -2, 10, 0.8, '#f4a261'); line(c, 1, 7.5, 2, 10, 0.8, '#f4a261'); },
+    tophat: function (c, o) { circ(c, 0, 0, 6.8); fs(c, '#1b1b1b', 0.8); circ(c, 0, 0, 4.4); c.lineWidth = 1.6; c.strokeStyle = o.band; c.stroke(); circ(c, 0, 0, 3.6); fs(c, '#2b2d42', 0.5); circ(c, -1, -1, 1.2); fs(c, 'rgba(255,255,255,.18)'); },
+    sunglasses: function (c, o) { circ(c, -3.6, 0, 3); fs(c, '#2b2d42', 0.9); circ(c, 3.6, 0, 3); fs(c, '#2b2d42', 0.9); c.beginPath(); c.arc(-3.6, 0, 3, 0, TAU); c.lineWidth = 1.1; c.strokeStyle = o.col; c.stroke(); c.beginPath(); c.arc(3.6, 0, 3, 0, TAU); c.stroke(); line(c, -0.8, -0.6, 0.8, -0.6, 1, o.col); circ(c, -4.4, -1, 0.8); fs(c, 'rgba(255,255,255,.5)'); },
+    melon: function (c, o) { c.beginPath(); c.arc(0, -2, 7, 0, Math.PI); c.closePath(); fs(c, o.rind, 0.8); c.beginPath(); c.arc(0, -2, 5.6, 0, Math.PI); c.closePath(); fs(c, o.col); if (o.seeds) { c.fillStyle = INK; [[-2.5, 0.2], [0, 1.4], [2.5, 0.2], [-1.2, 2.6], [1.2, 2.6]].forEach(function (p) { c.beginPath(); c.ellipse(p[0], p[1], 0.4, 0.7, 0, 0, TAU); c.fill(); }); } },
+    magnifier: function (c, o) { line(c, 3, 3, 8.5, 8.5, 3.2); line(c, 3, 3, 8.5, 8.5, 2, o.col); circ(c, -1, -1, 5); fs(c, 'rgba(207,232,255,.75)', 1.6); circ(c, -1, -1, 5); c.lineWidth = 1; c.strokeStyle = '#c9a227'; c.stroke(); line(c, -3.5, -2.5, -1.5, -4.5, 0.7, '#ffffff'); },
+
     /* furniture, top down */
     desk: function (c, o) { var w = o.w || 28, h = o.h || 14; rr(c, -w / 2, -h / 2, w, h, 1.5); fs(c, o.col || '#c89f6e', 0.9); rr(c, -6, -h / 2 + 1.5, 12, 3, 0.8); fs(c, '#2b2d42', 0.5); rr(c, -5, 1, 10, 3, 0.6); fs(c, '#e9ecef', 0.4); },
     chair: function (c, o) { circ(c, 0, 0, 4); fs(c, o.col || '#3d405b', 0.7); rr(c, -4, 3.6, 8, 2.4, 1); fs(c, o.col || '#3d405b', 0.6); },
@@ -342,6 +371,40 @@
       decoy: function (h) { return { kind: 'trophy', o: { col: h.pick(['#c9ced6', '#d98b5f']) } }; } },
     guitar: { label: 'Red Guitar', desc: 'A red guitar left out on the floor', kind: 'guitar', r: 10, where: ['indoor', 'tower'], o: { col: '#e63946' }, dec: 8,
       decoy: function (h) { return { kind: 'guitar', o: { col: h.pick(['#d9b382', '#1b1b1b', '#1f6fff', '#f4a261']) } }; } },
+    mug: { label: 'Red Mug', desc: 'A red coffee mug, still steaming, in an office', kind: 'mug', r: 7, where: ['indoor', 'tower'], prefer: ['office', 'meeting', 'kitchen', 'cafeteria'], o: { col: '#e63946', steam: true }, dec: 10,
+      decoy: function (h) { return { kind: 'mug', o: { col: h.pick(['#1f6fff', '#ffffff', '#2d9a5f', '#e63946']), steam: false } }; } },
+    laptop: { label: 'Star Laptop', desc: 'A silver laptop with a yellow sticker on the lid', kind: 'laptop', r: 9, where: ['indoor', 'tower'], prefer: ['office', 'meeting', 'lounge'], o: { sticker: '#ffd23f' }, dec: 10,
+      decoy: function (h) { return { kind: 'laptop', o: { sticker: h.pick([null, '#e63946', '#1f6fff', null]) } }; } },
+    stapler: { label: 'Red Stapler', desc: 'A red stapler, somebody wants it back', kind: 'stapler', r: 8, where: ['indoor', 'tower'], prefer: ['office', 'meeting'], o: { col: '#e63946' }, dec: 8,
+      decoy: function (h) { return { kind: 'stapler', o: { col: h.pick(['#2b2d42', '#9aa1ab', '#1f6fff']) } }; } },
+    notes: { label: 'Pink Notes', desc: 'A pad of pink sticky notes', kind: 'notes', r: 6, where: ['indoor', 'tower'], prefer: ['office', 'meeting', 'shop'], o: { col: '#ff8fd1' }, dec: 12,
+      decoy: function (h) { return { kind: 'notes', o: { col: h.pick(['#ffd23f', '#90be6d', '#8ecae6', '#ffd23f']) } }; } },
+    soccer: { label: 'Soccer Ball', desc: 'A black and white soccer ball', kind: 'soccer', r: 7, where: ['field', 'park', 'lot', 'walk'], o: {}, dec: 10,
+      decoy: function (h) { return h.chance(0.6) ? { kind: 'volley', o: { col: h.pick(['#ffffff', '#ffd23f']) } } : { kind: 'basketball', o: {} }; } },
+    hoops: { label: 'Basketball', desc: 'An orange basketball, look near the courts', kind: 'basketball', r: 7, where: ['court', 'park', 'side'], o: {}, dec: 10,
+      decoy: function (h) { return h.chance(0.5) ? { kind: 'basketball', o: { col: h.pick(['#e63946', '#9a6a3a']) } } : { kind: 'volley', o: { col: '#ffffff' } }; } },
+    frisbee: { label: 'Green Frisbee', desc: 'A green flying disc in a park', kind: 'frisbee', r: 7, where: ['park', 'field', 'roof'], o: { col: '#2d9a5f' }, dec: 10,
+      decoy: function (h) { return { kind: 'frisbee', o: { col: h.pick(['#ff7a1a', '#1f6fff', '#e63946', '#ffffff']) } }; } },
+    kite: { label: 'Rainbow Kite', desc: 'A kite with four different colors', kind: 'kite', r: 10, where: ['park', 'field', 'roof'], o: { cols: ['#e63946', '#ffd23f', '#2d9a5f', '#1f6fff'] }, dec: 8,
+      decoy: function (h) { var a = h.pick(PAL.toy), b = h.pick(PAL.toy); return { kind: 'kite', o: { cols: [a, b, a, b] } }; } },
+    cone: { label: 'Blue Band Cone', desc: 'A traffic cone with a blue band, the rest have white', kind: 'cone', r: 7, where: ['side', 'lot', 'walk'], o: { stripe: '#1f6fff' }, dec: 14,
+      decoy: function () { return { kind: 'cone', o: { stripe: '#ffffff' } }; } },
+    donut: { label: 'Sprinkle Donut', desc: 'A pink donut with sprinkles', kind: 'donut', r: 7, where: ['indoor', 'tower', 'walk', 'park', 'lot'], o: { icing: '#ff8fd1', spr: true }, dec: 10,
+      decoy: function (h) { return h.chance(0.5) ? { kind: 'donut', o: { icing: '#ff8fd1', spr: false } } : { kind: 'donut', o: { icing: h.pick(['#6b3e1f', '#ffffff']), spr: true } }; } },
+    banana: { label: 'Banana', desc: 'A ripe yellow banana', kind: 'banana', r: 8, where: ['indoor', 'tower', 'walk', 'roof', 'sand'], o: { col: '#ffd23f' }, dec: 8,
+      decoy: function () { return { kind: 'banana', o: { col: '#90be6d' } }; } },
+    pineapple: { label: 'Pineapple', desc: 'A whole pineapple', kind: 'pineapple', r: 8, where: ['roof', 'park', 'indoor', 'tower', 'sand'], o: { col: '#e9b949' }, dec: 6,
+      decoy: function () { return { kind: 'coconut', o: {} }; } },
+    chicken: { label: 'Rubber Chicken', desc: 'A yellow rubber chicken. Nobody knows why', kind: 'chicken', r: 9, where: ['indoor', 'tower', 'roof', 'park', 'lot', 'sand'], o: { col: '#ffd23f' }, dec: 8,
+      decoy: function (h) { return { kind: 'chicken', o: { col: h.pick(['#ffffff', '#f4a261']) } }; } },
+    tophat: { label: 'Top Hat', desc: 'A black top hat with a red band', kind: 'tophat', r: 8, where: ['walk', 'roof', 'indoor', 'tower', 'park'], o: { band: '#e63946' }, dec: 8,
+      decoy: function (h) { return { kind: 'tophat', o: { band: h.pick(['#1f6fff', '#ffd23f', '#2b2d42']) } }; } },
+    shades: { label: 'Pink Shades', desc: 'Sunglasses with pink frames', kind: 'sunglasses', r: 8, where: ['walk', 'side', 'park', 'roof', 'sand', 'indoor'], o: { col: '#ff8fd1' }, dec: 10,
+      decoy: function (h) { return { kind: 'sunglasses', o: { col: h.pick(['#1b1b1b', '#ffd23f', '#1f6fff', '#1b1b1b']) } }; } },
+    melon: { label: 'Melon Slice', desc: 'A slice of watermelon with seeds', kind: 'melon', r: 8, where: ['park', 'walk', 'indoor', 'tower', 'sand'], o: { col: '#ff5d73', rind: '#2d9a5f', seeds: true }, dec: 8,
+      decoy: function (h) { return h.chance(0.5) ? { kind: 'melon', o: { col: '#ff5d73', rind: '#2d9a5f', seeds: false } } : { kind: 'melon', o: { col: '#f4a261', rind: '#e9e2d0', seeds: false } }; } },
+    magnifier: { label: 'Magnifier', desc: 'A magnifying glass with a red handle, fitting for this game', kind: 'magnifier', r: 9, where: ['indoor', 'tower', 'roof', 'walk', 'park'], o: { col: '#e63946' }, dec: 8,
+      decoy: function (h) { return { kind: 'magnifier', o: { col: h.pick(['#1b1b1b', '#9a6a3a', '#1f6fff']) } }; } },
     bird: { label: 'Bluebird', desc: 'A blue bird with a yellow chest. It flies around, so watch where it lands', kind: 'bird', r: 8, where: ['air'], o: { col: '#1f6fff', belly: '#ffd23f' }, dec: 0,
       decoy: function (h) { return { kind: 'bird', o: { col: '#1f6fff', belly: '#ffffff' } }; } },
     fish: { label: 'Goldfish Bowl', desc: 'A fishbowl with one orange goldfish', kind: 'fishbowl', r: 7, where: ['indoor', 'tower'], o: { col: '#ff8c1a' }, dec: 8,
@@ -349,9 +412,9 @@
   };
 
   var DIFF = {
-    easy: { n: 6, crowd: 0.7, decoy: 0.5, label: 'Easy' },
-    normal: { n: 10, crowd: 1, decoy: 1, label: 'Normal' },
-    hard: { n: 16, crowd: 1.35, decoy: 1.8, label: 'Hard' }
+    easy: { n: 8, crowd: 0.7, decoy: 0.5, label: 'Easy' },
+    normal: { n: 12, crowd: 1, decoy: 1, label: 'Normal' },
+    hard: { n: 18, crowd: 1.35, decoy: 1.8, label: 'Hard' }
   };
 
   /* the clock that live sprites (doors, birds) read; the engine sets it every frame */
@@ -370,7 +433,13 @@
     skylight: ['crack', 'crash', 'CRASH'], pigeon: ['fly', 'flutter', null], tree: ['jiggle', 'rustle', null], trash: ['jiggle', 'clang', 'CLANG'],
     hydrant: ['jiggle', 'clang', null], mailbox: ['jiggle', 'beep', null], stroller: ['jiggle', 'squeak', null], piano: ['jiggle', 'strum', 'PLINK'],
     tv: ['jiggle', 'beep', null], fridge: ['jiggle', 'clang', null], rack: ['jiggle', 'beep', null], billiard: ['jiggle', 'clack', 'CLACK'],
-    bird: ['jiggle', 'chirp', 'TWEET'], stall: ['jiggle', 'boing', null], bench: ['jiggle', 'clang', null]
+    bird: ['jiggle', 'chirp', 'TWEET'], stall: ['jiggle', 'boing', null], bench: ['jiggle', 'clang', null],
+    mug: ['jiggle', 'bloop', 'SLURP'], laptop: ['jiggle', 'beep', 'CLICK'], stapler: ['hop', 'clack', 'CHUNK'], notes: ['spin', 'whoosh', null],
+    cooler: ['jiggle', 'bloop', 'GLUG'], printer: ['jiggle', 'beep', 'BRRRT'], cabinet: ['jiggle', 'clang', null],
+    soccer: ['hop', 'boing', 'KICK'], volley: ['hop', 'boing', null], basketball: ['hop', 'boing', 'BOUNCE'], frisbee: ['spin', 'whoosh', 'WHOOSH'],
+    kite: ['jiggle', 'whoosh', null], cone: ['jiggle', 'clang', null], hoop: ['jiggle', 'clang', 'SWISH'], donut: ['spin', 'bloop', 'YUM'],
+    banana: ['spin', 'boing', null], pineapple: ['hop', 'boing', null], coconut: ['hop', 'clack', 'BONK'], chicken: ['jiggle', 'squawk', 'SQUAWK'],
+    tophat: ['spin', 'chime', 'TA DA'], sunglasses: ['jiggle', 'chime', 'COOL'], melon: ['jiggle', 'bloop', 'YUM'], magnifier: ['spin', 'chime', 'AHA']
   };
 
   /* little synth sound effects, no sound files */
@@ -413,6 +482,7 @@
       clang: function () { tone(520, 0.3, 'square', 0.05, 480); tone(1310, 0.25, 'triangle', 0.06); },
       clack: function () { noise(0.03, 2500, 'bandpass', 0.8); noise(0.03, 2500, 'bandpass', 0.6, 0.09); },
       chirp: function () { tone(2600, 0.07, 'sine', 0.1, 3600); tone(2800, 0.07, 'sine', 0.1, 3800, 0.1); },
+      squawk: function () { tone(900, 0.16, 'sawtooth', 0.08, 450); tone(1000, 0.2, 'sawtooth', 0.08, 380, 0.2); },
       creak: function () { tone(110, 0.45, 'sawtooth', 0.04, 190); },
       found: function () { tone(784, 0.15, 'sine', 0.12); tone(1175, 0.3, 'sine', 0.12, null, 0.1); },
       miss: function () { tone(150, 0.12, 'triangle', 0.08, 120); }
