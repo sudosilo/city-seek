@@ -626,28 +626,34 @@
     });
 
     var targets = [], towerTargets = towers.map(function (tw) { return tw.types.map(function () { return []; }); });
+    var EACH = 10;
     chosen.forEach(function (id) {
       var def = TDEF[id], tags = tagsFor(def);
       if (!tags.length) tags = ['walk'];
-      var tag = pick(tags);
-      var t = { id: id, label: def.label, desc: def.desc, kind: def.kind, o: def.o, r: def.r, found: false, zone: tag };
-      if (tag === 'tower') {
-        var ti = ri(0, towers.length - 1), tw = towers[ti], fi = ri(0, tw.n - 1);
-        t.tower = tw; t.floor = fi; t.wx = tw.cx; t.wy = tw.cy;
-        towerTargets[ti][fi].push(t); targets.push(t); return;
+      for (var k = 0; k < EACH; k++) {
+        var tag = pick(tags);
+        var t = { id: id, n: k, label: def.label, desc: def.desc, kind: def.kind, o: def.o, r: def.r, found: false, zone: tag };
+        if (tag === 'tower') {
+          var ti = ri(0, towers.length - 1), tw = towers[ti], fi = ri(0, tw.n - 1);
+          t.tower = tw; t.floor = fi; t.wx = tw.cx; t.wy = tw.cy;
+          towerTargets[ti][fi].push(t); targets.push(t); continue;
+        }
+        var list = spots[tag].filter(function (q) { return !q.used; });
+        if (!list.length) list = spots[tag];
+        var best = null;
+        for (var tr = 0; tr < 40; tr++) {
+          var s = pick(list), ok = true;
+          for (var i = 0; i < targets.length; i++) { var q2 = targets[i]; if (q2.tower) continue; var dd2 = Math.hypot(q2.wx - s.x, q2.wy - s.y); if (dd2 < 40 || (q2.id === id && dd2 < 280)) { ok = false; break; } }
+          if (ok) { best = s; break; }
+          if (!best) best = s;
+        }
+        best.used = true;
+        t.x = t.wx = best.x; t.y = t.wy = best.y; t.sh = best.sh || 0; t.hd = best.hd || 0;
+        w.cur = { sh: t.sh, hd: t.hd };
+        spr(def.kind, t.x, t.y, rnd(0, TAU), def.o, 3, def.r + 16);
+        w.cur = { sh: 0, hd: 0 };
+        targets.push(t);
       }
-      var list = spots[tag], best = null;
-      for (var tr = 0; tr < 80; tr++) {
-        var s = pick(list), ok = true;
-        for (var i = 0; i < targets.length; i++) if (Math.hypot(targets[i].wx - s.x, targets[i].wy - s.y) < 320) { ok = false; break; }
-        if (ok) { best = s; break; }
-        if (!best) best = s;
-      }
-      t.x = t.wx = best.x; t.y = t.wy = best.y; t.sh = best.sh || 0; t.hd = best.hd || 0;
-      w.cur = { sh: t.sh, hd: t.hd };
-      spr(def.kind, t.x, t.y, rnd(0, TAU), def.o, 3, def.r + 16);
-      w.cur = { sh: 0, hd: 0 };
-      targets.push(t);
     });
 
     w.targets = targets.filter(function (t) { return !t.tower; });
@@ -682,7 +688,7 @@
       var best = null;
       for (var tr = 0; tr < 60; tr++) {
         var s = h.pick(spots), ok = true;
-        for (var i = 0; i < placed.length; i++) if (Math.hypot(placed[i].x - s.x, placed[i].y - s.y) < 200) { ok = false; break; }
+        for (var i = 0; i < placed.length; i++) if (Math.hypot(placed[i].x - s.x, placed[i].y - s.y) < 60) { ok = false; break; }
         if (ok) { best = s; break; }
         if (!best) best = s;
       }
