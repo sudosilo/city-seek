@@ -13,7 +13,7 @@
       return id;
     };
     w.mk = function (kind, x, y, o, rot) { return function (c) { c.save(); c.translate(x, y); if (rot) c.rotate(rot); SP[kind](c, o); c.restore(); }; };
-    w.spr = function (kind, x, y, rot, o, L, rad, dot) { return w.add(x - rad, y - rad, x + rad, y + rad, L, w.mk(kind, x, y, o, rot), dot); };
+    w.spr = function (kind, x, y, rot, o, L, rad, dot) { var id = w.add(x - rad, y - rad, x + rad, y + rad, L, w.mk(kind, x, y, o, rot), dot), it = items[id]; it.k = kind; it.cx = x; it.cy = y; return id; };
     return w;
   }
 
@@ -427,7 +427,7 @@
       if (chance(0.22)) { var gw = rnd(40, Math.min(120, w2 * 0.5)), gh = rnd(30, Math.min(80, h2 * 0.4)), f = []; for (k = 0; k < gw * gh / 120; k++) f.push([rnd(-gw / 2 + 4, gw / 2 - 4), rnd(-gh / 2 + 4, gh / 2 - 4), pick(PAL.flower)]); p = place(gw, gh); if (p) add(p.x - gw / 2, p.y - gh / 2, p.x + gw / 2, p.y + gh / 2, 3, mk('garden', p.x, p.y, { w: gw, h: gh, f: f }), '#9fd38a'); }
       if (chance(0.35)) { var tr2 = rnd(10, 16); p = place(tr2 * 2, tr2 * 2); if (p) spr('tank', p.x, p.y, 0, { r: tr2 }, 3, tr2); }
       var nsk = chance(0.35) ? ri(1, 3) : 0;
-      for (k = 0; k < nsk; k++) { var kw = rnd(16, 34), kh = rnd(12, 24); p = place(kw, kh); if (p) add(p.x - kw / 2, p.y - kh / 2, p.x + kw / 2, p.y + kh / 2, 3, mk('skylight', p.x, p.y, { w: kw, h: kh })); }
+      for (k = 0; k < nsk; k++) { var kw = rnd(16, 34), kh = rnd(12, 24); p = place(kw, kh); if (p) { var sk = w.items[add(p.x - kw / 2, p.y - kh / 2, p.x + kw / 2, p.y + kh / 2, 3, mk('skylight', p.x, p.y, { w: kw, h: kh }))]; sk.k = 'skylight'; sk.cx = p.x; sk.cy = p.y; } }
       var nac = Math.min(7, ri(0, Math.floor(area / 9000)));
       for (k = 0; k < nac; k++) { p = place(14, 14); if (p) spr('ac', p.x, p.y, 0, {}, 3, 8, '#c9ccd2'); }
       if (chance(0.3)) { p = place(13, 13); if (p) spr('dish', p.x, p.y, 0, {}, 3, 7); }
@@ -442,6 +442,45 @@
       }
     }
 
+    /* outside doors that swing open now and then, and open when tapped */
+    function door(l, side, glass) {
+      var along = side < 2 ? rnd(l[0] + 22, l[2] - 22) : rnd(l[1] + 22, l[3] - 22);
+      var px = side < 2 ? along : (side === 2 ? l[0] : l[2]), py = side < 2 ? (side === 0 ? l[1] : l[3]) : along;
+      var rot = side === 0 ? Math.PI : side === 1 ? 0 : side === 2 ? Math.PI / 2 : -Math.PI / 2;
+      var d = { ph: rnd(0, 20), per: rnd(7, 16), openUntil: 0, openAt: 0 };
+      var id = add(px - 22, py - 22, px + 22, py + 22, 2.9, function (c) {
+        var now = CS_NOW, tt = now / 1000, cyc = (tt + d.ph) % d.per, f = 0;
+        if (cyc < 2.4) f = cyc < 0.35 ? cyc / 0.35 : cyc > 2.05 ? (2.4 - cyc) / 0.35 : 1;
+        if (d.openUntil > now) { var e = (now - d.openAt) / 300, r2 = (d.openUntil - now) / 300; f = Math.max(f, Math.min(1, e, r2)); }
+        f = f * f * (3 - 2 * f);
+        c.save(); c.translate(px, py); c.rotate(rot);
+        rr(c, -11, 1.5, 22, 7, 1.5); fs(c, glass ? '#d6d9de' : '#c9b49a', 0.6);
+        c.fillStyle = '#3d2a1a'; c.fillRect(-8, -3.5, 16, 3.5);
+        c.fillStyle = INK; c.fillRect(-10, -3.5, 2, 4); c.fillRect(8, -3.5, 2, 4);
+        var a = f * 1.35, ex = -8 + Math.cos(a) * 16, ey = Math.sin(a) * 16;
+        line(c, -8, 0, ex, ey, 4.2); line(c, -8, 0, ex, ey, 2.6, glass ? '#9fc6ee' : '#a8743f');
+        c.restore();
+      });
+      var it = w.items[id]; it.k = 'door'; it.cx = px; it.cy = py; it.door = d; w.live = true;
+    }
+
+    /* birds that hop between perches: some are scenery, some are the Bluebirds you hunt */
+    var perches = [], movers = [];
+    function bird(o) {
+      if (!perches.length) perches = spots.park.concat(spots.walk, spots.lot, spots.side, spots.roof);
+      var n = ri(4, 7), pts = [pick(perches)], perch = [], fly = [];
+      for (var i = 1; i < n; i++) {
+        var prev = pts[i - 1], best = null;
+        for (var tr = 0; tr < 20; tr++) { var q = pick(perches), dd = Math.hypot(q.x - prev.x, q.y - prev.y); if (dd > 80 && dd < 700) { best = q; break; } }
+        pts.push(best || pick(perches));
+      }
+      var total = 0;
+      for (var j = 0; j < n; j++) { var a = pts[j], b = pts[(j + 1) % n]; perch.push(rnd(4, 12)); fly.push(Math.max(2, Math.hypot(b.x - a.x, b.y - a.y) / 95)); total += perch[j] + fly[j]; }
+      var m = { o: o, pts: pts.map(function (p) { return { x: p.x, y: p.y }; }), perch: perch, fly: fly, period: total, off: rnd(0, total), face: pts.map(function () { return rnd(0, TAU); }) };
+      movers.push(m); w.live = true;
+      return m;
+    }
+
     function bldg(x0, y0, x1, y1) {
       add(x0, y0, x1, y1, 0, function (c) { c.fillStyle = '#b9b4a8'; c.fillRect(x0, y0, x1 - x0, y1 - y0); });
       var leaves = [];
@@ -454,8 +493,11 @@
       })(x0, y0, x1, y1, 0);
       leaves.forEach(function (l) {
         var lw = l[2] - l[0], lh = l[3] - l[1];
-        if (lw * lh > 48000 && Math.min(lw, lh) > 180 && towers.length < 7 && chance(0.42)) tower(l[0], l[1], l[2], l[3]);
-        else roof(l[0], l[1], l[2], l[3]);
+        var isTower = lw * lh > 48000 && Math.min(lw, lh) > 180 && towers.length < 7 && chance(0.42);
+        if (isTower) tower(l[0], l[1], l[2], l[3]); else roof(l[0], l[1], l[2], l[3]);
+        var sides = [];
+        if (l[1] <= y0 + 1) sides.push(0); if (l[3] >= y1 - 1) sides.push(1); if (l[0] <= x0 + 1) sides.push(2); if (l[2] >= x1 - 1) sides.push(3);
+        for (var dn = 0; dn < Math.min(sides.length, isTower ? 2 : 1); dn++) door(l, sides.splice(ri(0, sides.length - 1), 1)[0], isTower);
       });
     }
 
@@ -608,19 +650,21 @@
       else bldg(l[0], l[1], l[2], l[3]);
     });
 
+    for (var ab = 0; ab < Math.round(46 * D.crowd); ab++) bird(pick(BIRDS));
+
     /* hidden items: each one picks a zone, decoys fill every zone the item can live in */
     var pool = Object.keys(TDEF);
     for (var a = pool.length - 1; a > 0; a--) { var b2 = Math.floor(R() * (a + 1)), t2 = pool[a]; pool[a] = pool[b2]; pool[b2] = t2; }
     var chosen = pool.slice(0, Math.min(D.n, pool.length));
-    function tagsFor(def) { return def.where.filter(function (t) { return t === 'tower' ? towers.length > 0 : spots[t] && spots[t].length > 0; }); }
+    function tagsFor(def) { return def.where.filter(function (t) { return t === 'air' || (t === 'tower' ? towers.length > 0 : spots[t] && spots[t].length > 0); }); }
 
     chosen.forEach(function (id) {
-      var def = TDEF[id], n = Math.round(def.dec * D.decoy), tags = tagsFor(def).filter(function (t) { return t !== 'tower'; });
+      var def = TDEF[id], n = Math.round(def.dec * D.decoy), tags = tagsFor(def).filter(function (t) { return t !== 'tower' && t !== 'air'; });
       if (!tags.length) return;
       for (var i = 0; i < n; i++) {
         var sp = pick(spots[pick(tags)]), dd = def.decoy(h);
         w.cur = { sh: sp.sh || 0, hd: sp.hd || 0 };
-        spr(dd.kind, sp.x + rnd(-8, 8), sp.y + rnd(-8, 8), rnd(0, TAU), withSkin(h, dd.kind, dd.o), 3, def.r + 14);
+        w.items[spr(dd.kind, sp.x + rnd(-8, 8), sp.y + rnd(-8, 8), rnd(0, TAU), withSkin(h, dd.kind, dd.o), 3, def.r + 14)].decoy = true;
       }
       w.cur = { sh: 0, hd: 0 };
     });
@@ -633,6 +677,7 @@
       for (var k = 0; k < EACH; k++) {
         var tag = pick(tags);
         var t = { id: id, n: k, label: def.label, desc: def.desc, kind: def.kind, o: def.o, r: def.r, found: false, zone: tag };
+        if (tag === 'air') { var bm = bird(def.o); bm.target = t; t.mover = bm; t.x = t.wx = bm.pts[0].x; t.y = t.wy = bm.pts[0].y; targets.push(t); continue; }
         if (tag === 'tower') {
           var ti = ri(0, towers.length - 1), tw = towers[ti], fi = ri(0, tw.n - 1);
           t.tower = tw; t.floor = fi; t.wx = tw.cx; t.wy = tw.cy;
@@ -650,14 +695,14 @@
         best.used = true;
         t.x = t.wx = best.x; t.y = t.wy = best.y; t.sh = best.sh || 0; t.hd = best.hd || 0;
         w.cur = { sh: t.sh, hd: t.hd };
-        spr(def.kind, t.x, t.y, rnd(0, TAU), def.o, 3, def.r + 16);
+        w.items[spr(def.kind, t.x, t.y, rnd(0, TAU), def.o, 3, def.r + 16)].tgt = t;
         w.cur = { sh: 0, hd: 0 };
         targets.push(t);
       }
     });
 
     w.targets = targets.filter(function (t) { return !t.tower; });
-    w.all = targets; w.towers = towers; w.towerTargets = towerTargets;
+    w.all = targets; w.towers = towers; w.towerTargets = towerTargets; w.movers = movers;
     w.meta = { D: D, chosen: chosen }; w.seed = seed; w.difficulty = dk;
     return w;
   }
@@ -677,11 +722,11 @@
     var mine = city.towerTargets[ti][fi];
     mine.forEach(function (t) {
       var def = TDEF[t.id];
-      for (var i = 0; i < Math.max(2, Math.round(def.dec * D.decoy * 0.6)); i++) { var sp = h.pick(spots), dd = def.decoy(h); w.spr(dd.kind, sp.x + h.rnd(-8, 8), sp.y + h.rnd(-8, 8), h.rnd(0, TAU), withSkin(h, dd.kind, dd.o), 3, def.r + 14); }
+      for (var i = 0; i < Math.max(2, Math.round(def.dec * D.decoy * 0.6)); i++) { var sp = h.pick(spots), dd = def.decoy(h); w.items[w.spr(dd.kind, sp.x + h.rnd(-8, 8), sp.y + h.rnd(-8, 8), h.rnd(0, TAU), withSkin(h, dd.kind, dd.o), 3, def.r + 14)].decoy = true; }
     });
     city.meta.chosen.forEach(function (id) {
       var def = TDEF[id]; if (def.where.indexOf('tower') < 0) return;
-      for (var i = 0; i < h.ri(0, 2); i++) { var sp = h.pick(spots), dd = def.decoy(h); w.spr(dd.kind, sp.x + h.rnd(-8, 8), sp.y + h.rnd(-8, 8), h.rnd(0, TAU), withSkin(h, dd.kind, dd.o), 3, def.r + 14); }
+      for (var i = 0; i < h.ri(0, 2); i++) { var sp = h.pick(spots), dd = def.decoy(h); w.items[w.spr(dd.kind, sp.x + h.rnd(-8, 8), sp.y + h.rnd(-8, 8), h.rnd(0, TAU), withSkin(h, dd.kind, dd.o), 3, def.r + 14)].decoy = true; }
     });
     var placed = [];
     mine.forEach(function (t) {
@@ -693,7 +738,7 @@
         if (!best) best = s;
       }
       t.x = best.x; t.y = best.y; placed.push(best);
-      w.spr(t.kind, t.x, t.y, h.rnd(0, TAU), t.o, 3, t.r + 16);
+      w.items[w.spr(t.kind, t.x, t.y, h.rnd(0, TAU), t.o, 3, t.r + 16)].tgt = t;
     });
     w.targets = mine; w.all = mine; w.isFloor = true; w.seed = city.seed; w.difficulty = city.difficulty;
     return w;
