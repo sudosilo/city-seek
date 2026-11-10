@@ -24,8 +24,10 @@ button{font-family:inherit;color:var(--ink)}
 .chip{flex:none;width:62px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none}
 .chip .ic{width:44px;height:44px;border:2.5px solid var(--ink);border-radius:9px;background:var(--paper);position:relative;overflow:hidden}
 .chip canvas{width:100%;height:100%;display:block}
+.chip .ct{position:absolute;right:-1px;bottom:-1px;background:var(--ink);color:#fff;font-size:9px;font-weight:900;padding:1px 3px;border-radius:5px 0 6px 0;z-index:2}
 .chip .lb{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;line-height:1.1;text-align:center;max-width:62px}
 .chip.got .ic{background:var(--blue2);border-color:var(--blue)}
+.chip.got .ct{display:none}
 .chip.got .ic::after{content:"\2713";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(31,111,255,.78);color:#fff;font-size:24px;font-weight:900}
 .chip.got .lb{color:var(--blue)}
 #ctrls{position:fixed;right:10px;top:142px;display:flex;flex-direction:column;gap:8px;z-index:25}
@@ -132,7 +134,7 @@ body.inside #toast{top:192px}
       <div>The whole city is far too small to search from up high. Tap anywhere to dive in, then pinch, drag and use the zoom buttons to work the streets, rooftops, parks, plazas and parking lots.</div>
       <div>Zoom in really close and the roofs turn see through, so you can look inside houses, offices and shops. Sandboxes show their toys the same way.</div>
       <div>Glass towers show a floor count on the roof. Tap one to go inside, then use the floor buttons along the bottom to switch floors. Exit takes you back to the city.</div>
-      <div>Each card in the top tray shows exactly what you are hunting. Tap a card to see its description. Watch for look alikes: a blue cap without the yellow backpack, a silver crown, a bear with the wrong bow.</div>
+      <div>Each card in the top tray shows exactly what you are hunting, and there are ten of every item hidden around the city, so the number on the card counts how many you have found. Tap a card to see its description. Watch for look alikes: a blue cap without the yellow backpack, a silver crown, a bear with the wrong bow.</div>
       <div>Once you are zoomed in close, tap an item to grab it. Wrong taps count as misses. A hint circles the area around one item and adds time.</div>
     </div>
   </details>
@@ -184,10 +186,12 @@ body.inside #toast{top:192px}
   function pause(v) { if (!running) return; if (v && !paused) { elapsed += (performance.now() - startAt) / 1000; paused = true; } else if (!v && paused) { startAt = performance.now(); paused = false; } }
   function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastId); toastId = setTimeout(function () { t.classList.remove('on'); }, 1900); }
 
+  function typeCount(id) { var a = info.targets.filter(function (x) { return x.id === id; }); return [a.filter(function (x) { return x.found; }).length, a.length]; }
   function found(t) {
-    var chip = document.querySelector('.chip[data-id="' + t.id + '"]'); if (chip) { chip.classList.add('got'); chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }
+    var c = typeCount(t.id), chip = document.querySelector('.chip[data-id="' + t.id + '"]');
+    if (chip) { chip.querySelector('.ct').textContent = c[0] + '/' + c[1]; if (c[0] === c[1]) chip.classList.add('got'); chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }
     var n = info.targets.filter(function (x) { return x.found; }).length, all = info.targets.length;
-    $('count').textContent = n + '/' + all; toast('FOUND: ' + t.label.toUpperCase());
+    $('count').textContent = n + '/' + all; toast('FOUND: ' + t.label.toUpperCase() + ' ' + c[0] + ' OF ' + c[1]);
     game.redraw();
     if (n === all && !won) { won = true; setTimeout(win, 700); }
   }
@@ -196,7 +200,7 @@ body.inside #toast{top:192px}
     var a = game.getStats(), b = fgame.getStats(), st = { misses: a.misses + b.misses, hints: a.hints };
     var tt = Math.floor(total()), key = diff, prev = best[key];
     if (!prev || tt < prev) { best[key] = tt; store.set('cityseek-v2-best', best); }
-    var stars = st.hints === 0 && st.misses <= 3 ? 3 : st.hints <= 1 && st.misses <= 8 ? 2 : 1;
+    var stars = st.hints <= 1 && st.misses <= 15 ? 3 : st.hints <= 4 && st.misses <= 40 ? 2 : 1;
     $('wStars').textContent = '\u2605'.repeat(stars) + '\u2606'.repeat(3 - stars);
     $('wTime').textContent = fmt(tt); $('wMiss').textContent = st.misses; $('wHint').textContent = st.hints;
     $('wBest').textContent = fmt(best[key]) + ' ' + CitySeek.DIFFICULTY[key].label;
@@ -248,15 +252,17 @@ body.inside #toast{top:192px}
 
   function buildTray(targets) {
     var tray = $('tray'); tray.innerHTML = '';
-    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var dpr = Math.min(2, window.devicePixelRatio || 1), seen = {};
     targets.forEach(function (t) {
+      if (seen[t.id]) return; seen[t.id] = true;
       var b = document.createElement('button'); b.className = 'chip'; b.dataset.id = t.id;
       var ic = document.createElement('div'); ic.className = 'ic';
       var cv = document.createElement('canvas'); cv.width = 44 * dpr; cv.height = 44 * dpr; ic.appendChild(cv);
+      var ct = document.createElement('div'); ct.className = 'ct'; ct.textContent = '0/' + typeCount(t.id)[1]; ic.appendChild(ct);
       var lb = document.createElement('div'); lb.className = 'lb'; lb.textContent = t.label;
       b.appendChild(ic); b.appendChild(lb); tray.appendChild(b);
       game.drawIcon(cv, t);
-      b.addEventListener('click', function () { toast(t.found ? 'Already found: ' + t.label : t.desc); });
+      b.addEventListener('click', function () { var c = typeCount(t.id); toast(c[0] === c[1] ? 'All ' + c[1] + ' found: ' + t.label : t.desc + '. Found ' + c[0] + ' of ' + c[1]); });
     });
   }
 
