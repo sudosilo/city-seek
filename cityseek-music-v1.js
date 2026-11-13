@@ -292,15 +292,100 @@
     return S;
   }
 
+
+  /* ===== lanes stage: a MIDI style waterfall dressed as a street. Every band gets its own lanes,
+     so fast hits stack up into a queue of cars, buses or people that cross the action line one by one ===== */
+  function makeLanes() {
+    function geo(v) { var u = v.u, W0 = 400 * u, x0 = (v.w - W0) / 2; return { u: u, x0: x0, W0: W0 }; }
+    var LX = { low: [75, 145], mid: [215, 285], high: [342, 382] };
+    function rows(c, x0, w, t, sp, step, colr, v) { var off = ((t * sp) % step + step) % step; c.fillStyle = colr; for (var y = -step + off; y < v.h + step; y += step) c.fillRect(x0, y, w, 1.5 * v.u); }
+    var S = {
+      margin: function (v) { return 70 * v.u; },
+      cross: function (ev, v) { var g = geo(v); return g.x0 + LX[ev.band][ev.lane || 0] * g.u; },
+      size: function (ev, v) { return v.u * (ev.band === 'low' ? 36 : ev.band === 'mid' ? 28 : 12); },
+      box: function (ev, x, y, size, v) { var u = v.u, hw = ev.band === 'high' ? 16 * u : 18 * u; return [x - hw, y - size - 4 * u, x + hw, y + size + 4 * u]; },
+      bg: function (c, t, v, E) {
+        var g = geo(v), u = g.u, x0 = g.x0, sp = E.speed, side = v.look === 'muted' ? '#ece7dc' : '#ece5d4', road = v.look === 'muted' ? '#a9adb3' : '#8d939c';
+        c.fillStyle = v.look === 'muted' ? '#ddd6c8' : '#c9c2b0'; c.fillRect(0, 0, v.w, v.h);
+        if (x0 > 2) {
+          var bh = 130 * u, off = ((t * sp) % bh + bh) % bh;
+          for (var j = -2; j * bh < v.h + bh; j++) {
+            var idx = j - Math.floor(t * sp / bh), y = j * bh + off;
+            [[0, x0 - 6 * u, 3], [x0 + g.W0 + 6 * u, v.w, 7]].forEach(function (q) { if (q[1] - q[0] < 8 * u) return; c.beginPath(); c.rect(q[0] + 6 * u, y + 6 * u, q[1] - q[0] - 12 * u, bh - 12 * u); shape(c, v, col(v, pick(PAL.roof, Math.floor(H01(idx * 13 + q[2]) * 1e6)))); });
+          }
+        }
+        c.fillStyle = side; c.fillRect(x0, 0, 40 * u, v.h); c.fillRect(x0 + 320 * u, 0, 80 * u, v.h);
+        rows(c, x0, 40 * u, t, sp, 30 * u, 'rgba(120,110,90,.35)', v); rows(c, x0 + 320 * u, 80 * u, t, sp, 30 * u, 'rgba(120,110,90,.35)', v);
+        c.fillStyle = road; c.fillRect(x0 + 40 * u, 0, 280 * u, v.h);
+        var dl = 30 * u, doff = ((t * sp) % (dl * 2) + dl * 2) % (dl * 2);
+        c.fillStyle = '#ffffff';
+        [110, 250].forEach(function (lx) { for (var y = -dl * 2 + doff; y < v.h; y += dl * 2) c.fillRect(x0 + lx * u - 1.5 * u, y, 3 * u, dl); });
+        c.fillStyle = '#ffd23f'; c.fillRect(x0 + 177 * u, 0, 2.5 * u, v.h); c.fillRect(x0 + 181 * u, 0, 2.5 * u, v.h);
+        c.fillStyle = INK; c.fillRect(x0 + 39 * u, 0, 2.5 * u, v.h); c.fillRect(x0 + 319 * u, 0, 2.5 * u, v.h);
+        var tp = 170 * u, toff = ((t * sp) % tp + tp) % tp;
+        for (var y2 = -tp + toff; y2 < v.h + tp; y2 += tp) { c.save(); c.translate(x0 + 20 * u, y2); c.scale(u, u); SP.tree(c, { r: 15, col: col(v, '#4f9d5a') }); c.restore(); }
+      },
+      sprites: {
+        low: function (c, x, y, size, ev, v, age) {
+          var u = v.u, lit = age >= 0 && age < 0.25, sq = lit ? 1 - 0.06 * (1 - age / 0.25) : 1, bus = ev.seed % 3 !== 0;
+          c.save(); c.translate(x, y); c.scale(1, sq);
+          if (bus) {
+            var bc = col(v, ev.seed % 2 ? '#1f6fff' : '#ffd23f');
+            rr(c, -15 * u, -36 * u, 30 * u, 72 * u, 6 * u); shape(c, v, bc);
+            rr(c, -11 * u, 22 * u, 22 * u, 10 * u, 3 * u); shape(c, v, '#bfe3ff');
+            c.fillStyle = '#bfe3ff'; for (var k = 0; k < 5; k++) { c.fillRect(-14 * u, -30 * u + k * 10 * u, 3 * u, 7 * u); c.fillRect(11 * u, -30 * u + k * 10 * u, 3 * u, 7 * u); }
+            rr(c, -7 * u, -20 * u, 14 * u, 16 * u, 2 * u); shape(c, v, '#ffffff');
+          } else {
+            rr(c, -15 * u, -36 * u, 30 * u, 50 * u, 3 * u); shape(c, v, '#ffffff');
+            rr(c, -14 * u, 16 * u, 28 * u, 20 * u, 5 * u); shape(c, v, col(v, pick(PAL.car, ev.seed)));
+            rr(c, -10 * u, 27 * u, 20 * u, 6 * u, 2 * u); shape(c, v, '#bfe3ff');
+          }
+          c.fillStyle = lit ? '#ffffff' : '#fff6a0'; c.fillRect(-13 * u, 34 * u, 6 * u, 3 * u); c.fillRect(7 * u, 34 * u, 6 * u, 3 * u);
+          if (lit) { c.globalAlpha = 1 - age / 0.25; c.fillStyle = '#fff6a0'; c.beginPath(); c.moveTo(-14 * u, 37 * u); c.lineTo(-24 * u, 70 * u); c.lineTo(-2 * u, 70 * u); c.closePath(); c.moveTo(14 * u, 37 * u); c.lineTo(24 * u, 70 * u); c.lineTo(2 * u, 70 * u); c.closePath(); c.fill(); c.globalAlpha = 1; }
+          c.restore();
+          callout(c, x + 30 * u, y - 40 * u, ev, v, age, { accent: v.look === 'muted' ? '#d98c6a' : '#1f6fff' });
+        },
+        mid: function (c, x, y, size, ev, v, age) {
+          var u = v.u, lit = age >= 0 && age < 0.2;
+          c.save(); c.translate(x, y); c.rotate(Math.PI); c.scale(u * 1.3, u * 1.3);
+          SP.car(c, { col: col(v, pick(PAL.car, ev.seed)), taxi: ev.seed % 9 === 0 });
+          if (lit) { c.globalAlpha = 1 - age / 0.2; c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(-6, -22, 4, 0, TAU); c.arc(6, -22, 4, 0, TAU); c.fill(); }
+          c.restore();
+        },
+        high: function (c, x, y, size, ev, v, age) {
+          var u = v.u, step = Math.sin(ev.seed + y * 0.08) * 0.12;
+          c.save(); c.translate(x, y); c.rotate(Math.PI + step); c.scale(u * 1.9, u * 1.9);
+          SP.person(c, { shirt: col(v, pick(PAL.shirt, ev.seed)), hair: pick(PAL.hair, ev.seed >>> 4), skin: pick(PAL.skin, ev.seed >>> 6), cap: ev.seed % 5 === 0 ? col(v, pick(PAL.cap, ev.seed >>> 2)) : null });
+          if (age >= 0 && age < 0.3) {
+            var k = Math.min(1, age / 0.07), sc = (k < 1 ? backOut(k) : 1) * (age > 0.22 ? (0.3 - age) / 0.08 : 1);
+            c.scale(sc, sc); SP.umbrella(c, { col: col(v, pick(PAL.umb, ev.seed >>> 3)), dots: ev.seed % 4 === 0, r: 12 });
+          }
+          c.restore();
+        }
+      }
+    };
+    S.layers = ['low', 'mid', 'high'];
+    S.fg = function (c, t, v, E) {
+      var p = E.line(v), u = v.u, g = geo(v), bc = BANDCOL[v.look === 'muted' ? 'muted' : 'bold'];
+      E.between(t - 0.22, t + 0.001).forEach(function (ev) {
+        var a = t - ev.t, x = S.cross(ev, v), w = (ev.band === 'high' ? 40 : 70) * u;
+        c.globalAlpha = (1 - a / 0.22) * 0.45; c.fillStyle = bc[ev.band]; c.fillRect(x - w / 2, p - 90 * u, w, 90 * u);
+      });
+      c.globalAlpha = 1;
+      lineFg(c, t, v, E);
+    };
+    return S;
+  }
+
   function create(o) {
     var $ = function (id) { return document.getElementById(id); };
     var cv = o.canvas, ctx = cv.getContext('2d'), toast = o.toast, store = o.store, fmt = o.fmt;
     var M = {
-      view: store.get('cityseek-music-view', 'top'), look: store.get('cityseek-music-look', 'bold'), shape: store.get('cityseek-music-shape', 'screen'),
+      view: store.get('cityseek-music-view', 'lanes'), look: store.get('cityseek-music-look', 'bold'), shape: store.get('cityseek-music-shape', 'screen'),
       speed: store.get('cityseek-music-speed', 1), sens: store.get('cityseek-music-sens', 0.5), stream: store.get('cityseek-music-stream', false),
       action: store.get('cityseek-music-action', true), callouts: store.get('cityseek-music-callouts', true), xray: store.get('cityseek-music-xray', false)
     };
-    var E = BeatEngine.create(), top = makeTop(M);
+    var E = BeatEngine.create(), top = makeTop(M), lanes = makeLanes();
     var audio = new Audio(); audio.preload = 'auto'; audio.setAttribute('playsinline', '');
     var ac = null, src = null, rec = null, recChunks = [], recording = false;
     var trackA = null, trackName = 'Test beat', trackUrl = null, ready = false, busy = false, active = false;
@@ -314,6 +399,7 @@
     function applyEngine() {
       var v = view();
       if (M.view === 'train') { E.config({ axis: 'h', lineFrac: 0.5, speed: 230 * v.u * M.speed }); E.setStage(train); }
+      else if (M.view === 'lanes') { E.config({ axis: 'v', lineFrac: 0.78, speed: 300 * v.u * M.speed }); E.setStage(lanes); }
       else { E.config({ axis: 'v', lineFrac: 0.5, speed: 260 * v.u * M.speed }); E.setStage(top); }
       kick();
     }
@@ -339,13 +425,13 @@
     }
 
     function tCenter(ev, x, y, size, v) {
-      if (M.view === 'top') return { x: x, y: y };
+      if (M.view !== 'train') return { x: x, y: y };
       var u = v.u; return { x: x, y: ev.band === 'low' ? y - size - 42 * u : ev.band === 'mid' ? y - size - 30 * u : y - size * 1.4 - 34 * u };
     }
     function drawTarget(c, x, y, size, ev, v, age) {
       var def = TDEF[ev.targetId]; if (!def) return;
       if (M.view === 'train') E.stage.sprites[ev.band](c, x, y, size, ev, v, age);
-      var p = tCenter(ev, x, y, size, v), sc = M.view === 'top' ? v.zs * 1.15 : 30 * v.u / (def.r * 2);
+      var p = tCenter(ev, x, y, size, v), sc = M.view === 'top' ? v.zs * 1.15 : M.view === 'lanes' ? v.u * 1.7 : 30 * v.u / (def.r * 2);
       c.save(); c.translate(p.x, p.y + (M.view === 'train' ? Math.sin(age * 5) * 4 * v.u : 0)); c.scale(sc, sc);
       if (M.view === 'top') c.rotate(H01(ev.seed + 9) * TAU);
       SP[def.kind](c, def.o); c.restore();
@@ -372,6 +458,10 @@
     function redetect() {
       if (!trackA) return;
       var ev = A.detect(trackA, M.sens), n = { low: 0, mid: 0, high: 0 };
+      ['low', 'mid', 'high'].forEach(function (b) {
+        var ss = ev.filter(function (e) { return e.band === b; }).map(function (e) { return e.s; }).sort(function (x, y) { return x - y; }), med = ss.length ? ss[Math.floor(ss.length / 2)] : 0;
+        ev.forEach(function (e) { if (e.band === b) e.lane = e.s > med ? 0 : 1; });
+      });
       E.setTimeline(ev); ev.forEach(function (e) { n[e.band]++; });
       $('beatInfo').textContent = 'Hits found. Low: ' + n.low + ', mid: ' + n.mid + ', high: ' + n.high + '. Length ' + fmt(trackA.duration) + '.';
       pickTargets();
