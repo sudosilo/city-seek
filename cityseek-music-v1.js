@@ -54,12 +54,45 @@
     c.fillStyle = ink(v); c.fillText(txt, -bw / 2 + 22 * u, iy + 0.5 * u);
     c.restore();
   }
+  var BANDCOL = { bold: { low: '#1f6fff', mid: '#ffb703', high: '#e63946' }, muted: { low: '#5f7d9c', mid: '#d4a24c', high: '#d98c6a' } };
+  /* the action line: a playhead every object crosses on its beat, with a hit burst for every event */
   function lineFg(c, t, v, E) {
     if (!v.line) return;
-    var p = E.line(v);
-    c.save(); c.setLineDash([12 * v.u, 8 * v.u]); c.lineWidth = 2.5 * v.u; c.strokeStyle = 'rgba(31,111,255,.75)'; c.beginPath();
-    if (E.axis === 'v') { c.moveTo(0, p); c.lineTo(v.w, p); } else { c.moveTo(p, 0); c.lineTo(p, v.h); }
-    c.stroke(); c.restore();
+    var u = v.u, p = E.line(v), vert = E.axis === 'v', L = vert ? v.w : v.h, bc = BANDCOL[v.look === 'muted' ? 'muted' : 'bold'];
+    var hits = E.between(t - 0.45, t + 0.001), kick = 0, glow = 0;
+    hits.forEach(function (ev) { var a = t - ev.t; if (ev.band === 'low') kick = Math.max(kick, 1 - a / 0.3); glow = Math.max(glow, 1 - a / 0.12); });
+    if (kick > 0) { c.save(); c.globalAlpha = kick * 0.8; c.lineWidth = 12 * u * kick; c.strokeStyle = bc.low; c.strokeRect(0, 0, v.w, v.h); c.restore(); }
+    c.save();
+    c.lineCap = 'butt';
+    c.globalAlpha = 0.35; c.lineWidth = (8 + 10 * Math.max(0, glow)) * u; c.strokeStyle = '#ffffff'; c.beginPath();
+    if (vert) { c.moveTo(0, p); c.lineTo(v.w, p); } else { c.moveTo(p, 0); c.lineTo(p, v.h); } c.stroke();
+    c.globalAlpha = 1; c.lineWidth = (3 + 3 * Math.max(0, kick)) * u; c.strokeStyle = bc.low; c.stroke();
+    hits.forEach(function (ev) {
+      var a = t - ev.t, cr = E.stage.cross(ev, v), size = E.stage.size(ev, v), col = bc[ev.band];
+      if (!vert) cr = ev.band === 'low' ? cr - size * 0.5 : ev.band === 'mid' ? cr - size * 0.6 : cr - size * 0.6;
+      var x = vert ? cr : p, y = vert ? p : cr, k;
+      if (ev.band === 'low') {
+        k = a / 0.45; if (k > 1) return;
+        c.globalAlpha = 1 - k; c.beginPath(); c.arc(x, y, (18 + k * 70) * u, 0, TAU); c.lineWidth = (8 * (1 - k) + 1) * u; c.strokeStyle = col; c.stroke();
+      } else if (ev.band === 'mid') {
+        k = a / 0.3; if (k > 1) return;
+        c.globalAlpha = 1 - k; c.beginPath(); c.arc(x, y, (10 + k * 46) * u, 0, TAU); c.lineWidth = (6 * (1 - k) + 1) * u; c.strokeStyle = col; c.stroke();
+        c.fillStyle = col; c.globalAlpha = (1 - k) * 0.25; c.fill();
+      } else {
+        k = a / 0.18; if (k > 1) return;
+        c.globalAlpha = 1 - k; c.lineWidth = 3 * u; c.strokeStyle = col; c.beginPath();
+        for (var i = 0; i < 8; i++) { var an = i / 8 * TAU + (ev.seed % 7), r0 = (5 + k * 10) * u, r1 = (12 + k * 22) * u; c.moveTo(x + Math.cos(an) * r0, y + Math.sin(an) * r0); c.lineTo(x + Math.cos(an) * r1, y + Math.sin(an) * r1); }
+        c.stroke();
+      }
+      c.globalAlpha = 1 - Math.min(1, a / 0.15); c.fillStyle = col; var tl = (ev.band === 'low' ? 60 : ev.band === 'mid' ? 40 : 24) * u, tw = 7 * u;
+      if (vert) c.fillRect(cr - tl / 2, p - tw / 2, tl, tw); else c.fillRect(p - tw / 2, cr - tl / 2, tw, tl);
+    });
+    c.globalAlpha = 1; c.fillStyle = bc.low; var m = 12 * u;
+    c.beginPath();
+    if (vert) { c.moveTo(0, p - m); c.lineTo(m * 1.2, p); c.lineTo(0, p + m); c.moveTo(v.w, p - m); c.lineTo(v.w - m * 1.2, p); c.lineTo(v.w, p + m); }
+    else { c.moveTo(p - m, 0); c.lineTo(p, m * 1.2); c.lineTo(p + m, 0); c.moveTo(p - m, v.h); c.lineTo(p, v.h - m * 1.2); c.lineTo(p + m, v.h); }
+    c.fill();
+    c.restore();
   }
   function ring(c, x, y, size, age, v) {
     if (age < 0 || age > 0.35) return;
@@ -191,7 +224,7 @@
 
   /* ===== top down stage: the City Seek city scrolls under the camera like a flyover ===== */
   function makeTop(M) {
-    var TILE = 512, tiles = new Map(), world = null, key = '';
+    var world = null;
     function vis(it, vs) { if (it.sh && vs < it.sh) return false; if (it.hd && vs > it.hd * 1.2) return false; return true; }
     function paint(g, x0, y0, x1, y1, vs) {
       var C = world.CELL, list = [], seen = world._mm || (world._mm = new Int32Array(world.items.length)), st = (world._ms = (world._ms || 0) + 1);
@@ -201,25 +234,13 @@
         for (var i = 0; i < cell.length; i++) { var id = cell[i]; if (seen[id] === st) continue; seen[id] = st; var it = world.items[id]; if (!vis(it, vs) || it.x1 < x0 || it.x0 > x1 || it.y1 < y0 || it.y0 > y1) continue; list.push(id); }
       }
       list.sort(function (a, b) { return world.items[a].L - world.items[b].L || a - b; });
-      for (var n = 0; n < list.length; n++) { try { world.items[list[n]].f(g); } catch (e) { } }
-    }
-    function tile(ix, iy, s, v) {
-      var k = ix + ',' + iy, t = tiles.get(k);
-      if (t) { tiles.delete(k); tiles.set(k, t); return t; }
-      var cv = document.createElement('canvas'); cv.width = cv.height = TILE;
-      var g = cv.getContext('2d'), wt = TILE / s;
-      g.setTransform(s, 0, 0, s, -ix * TILE, -iy * TILE);
-      paint(g, ix * wt, iy * wt, (ix + 1) * wt, (iy + 1) * wt, M.xray ? 3 : 0.9);
-      if (v.look === 'muted') { g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = 'rgba(243,239,230,0.42)'; g.fillRect(0, 0, TILE, TILE); }
-      tiles.set(k, cv);
-      while (tiles.size > 70) tiles.delete(tiles.keys().next().value);
-      return cv;
+      for (var n = 0; n < list.length; n++) { g.save(); try { world.items[list[n]].f(g); } catch (e) { } g.restore(); }
     }
     function copyX(k) { return world.W * (0.3 + 0.4 * H01(k * 977 + 5)); }
     var S = {
-      setWorld: function (w) { world = w; tiles.clear(); },
+      setWorld: function (w) { world = w; },
       hasWorld: function () { return !!world; },
-      clear: function () { tiles.clear(); },
+      clear: function () { },
       margin: function (v) { return 90 * v.u; },
       cross: function (ev, v) { return v.w * (0.08 + 0.84 * H01(ev.seed + 11)); },
       size: function (ev, v) { var s = v.zs; return ev.band === 'low' ? (18 + 18 * ev.s) * s : ev.band === 'mid' ? 21 * s : 10 * s; },
@@ -227,23 +248,17 @@
       bg: function (c, t, v, E) {
         c.fillStyle = '#a3abb6'; c.fillRect(0, 0, v.w, v.h);
         if (!world) return;
-        var s = v.zs, kk = [s.toFixed(4), v.look, M.xray].join('|');
-        if (kk !== key) { key = kk; tiles.clear(); }
-        var H = world.H, vw = E.speed / s, P = E.line(v), Lw = H * 0.85 - t * vw, top = Lw - P / s, bot = Lw + (v.h - P) / s, wt = TILE / s, made = 0;
-        function visit(a, b, draw) {
-          for (var k = Math.floor(a / H); k <= Math.floor(b / H); k++) {
-            var left = copyX(k) - v.w / 2 / s, yA = Math.max(a, k * H) - k * H, yB = Math.min(b, (k + 1) * H) - k * H;
-            if (yB <= yA) continue;
-            var bx = Math.round(-left * s), by = Math.round((k * H - Lw) * s + P);
-            for (var iy = Math.floor(yA / wt); iy <= Math.floor((yB - 1e-6) / wt); iy++)
-              for (var ix = Math.floor(left / wt); ix <= Math.floor((left + v.w / s) / wt); ix++) {
-                if (draw) c.drawImage(tile(ix, iy, s, v), bx + ix * TILE, by + iy * TILE);
-                else if (!tiles.has(ix + ',' + iy) && made < 1) { tile(ix, iy, s, v); made++; }
-              }
-          }
+        var s = v.zs, H = world.H, vw = E.speed / s, P = E.line(v), Lw = H * 0.85 - t * vw, top = Lw - P / s, bot = Lw + (v.h - P) / s;
+        for (var k = Math.floor(top / H); k <= Math.floor(bot / H); k++) {
+          var left = copyX(k) - v.w / 2 / s, yA = Math.max(top, k * H) - k * H, yB = Math.min(bot, (k + 1) * H) - k * H;
+          if (yB <= yA) continue;
+          var oy = (k * H - Lw) * s + P;
+          c.save(); c.beginPath(); c.rect(0, Math.max(0, oy), v.w, Math.min(v.h, oy + H * s) - Math.max(0, oy)); c.clip();
+          c.setTransform(s, 0, 0, s, -left * s, oy);
+          paint(c, left - 30, yA - 30, left + v.w / s + 30, yB + 30, M.xray ? 3 : 0.9);
+          c.restore();
         }
-        visit(top, bot, true);
-        visit(top - wt, top, false);
+        if (v.look === 'muted') { c.fillStyle = 'rgba(243,239,230,0.42)'; c.fillRect(0, 0, v.w, v.h); }
       },
       sprites: {
         low: function (c, x, y, size, ev, v, age) {
@@ -264,7 +279,7 @@
           ring(c, x, y, size * 0.9, age, v);
         },
         high: function (c, x, y, size, ev, v, age) {
-          var s = v.zs, r = H01(ev.seed + 6), hop = age >= 0 && age < 0.2 ? 1 + 0.25 * (1 - age / 0.2) : 1;
+          var s = v.zs, r = H01(ev.seed + 6), hop = age >= 0 && age < 0.15 ? 1 + 0.6 * (1 - age / 0.15) : 1;
           c.save(); c.translate(x, y); c.scale(s * hop, s * hop);
           if (r < 0.45) SP.balloon(c, { col: col(v, pick(PAL.balloon, ev.seed)) });
           else { c.rotate(H01(ev.seed) * TAU); SP.person(c, { shirt: col(v, pick(PAL.shirt, ev.seed)), hair: pick(PAL.hair, ev.seed >>> 4), skin: PAL.skin ? pick(PAL.skin, ev.seed >>> 6) : undefined }); }
@@ -283,7 +298,7 @@
     var M = {
       view: store.get('cityseek-music-view', 'top'), look: store.get('cityseek-music-look', 'bold'), shape: store.get('cityseek-music-shape', 'screen'),
       speed: store.get('cityseek-music-speed', 1), sens: store.get('cityseek-music-sens', 0.5), stream: store.get('cityseek-music-stream', false),
-      line: store.get('cityseek-music-line', false), callouts: store.get('cityseek-music-callouts', true), xray: store.get('cityseek-music-xray', false)
+      action: store.get('cityseek-music-action', true), callouts: store.get('cityseek-music-callouts', true), xray: store.get('cityseek-music-xray', false)
     };
     var E = BeatEngine.create(), top = makeTop(M);
     var audio = new Audio(); audio.preload = 'auto'; audio.setAttribute('playsinline', '');
@@ -292,14 +307,14 @@
     var tPrev = 0, lastCt = 0, lastPerf = 0, raf = 0, dirty = true, freeT0 = performance.now(), lastSec = -1;
     var targets = [], hunt = { found: 0, total: 0, taps: 0, away: 0 }, anims = [], worldSeed = -1;
 
-    function view() { var w = cv.width, h = cv.height, m = Math.min(w, h); return { w: w, h: h, u: m / 400, zs: m / 560, look: M.look, line: M.line, callouts: M.callouts }; }
+    function view() { var w = cv.width, h = cv.height, m = Math.min(w, h); return { w: w, h: h, u: m / 400, zs: m / 560, look: M.look, line: M.action, callouts: M.callouts }; }
     function save(k) { store.set('cityseek-music-' + k, M[k]); }
     function segOn(id, attr, val) { Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' button'), function (b) { b.classList.toggle('on', b.dataset[attr] === val); }); }
 
     function applyEngine() {
       var v = view();
-      if (M.view === 'train') { E.config({ axis: 'h', lineFrac: 0.3, speed: 230 * v.u * M.speed }); E.setStage(train); }
-      else { E.config({ axis: 'v', lineFrac: 0.7, speed: 260 * v.u * M.speed }); E.setStage(top); }
+      if (M.view === 'train') { E.config({ axis: 'h', lineFrac: 0.5, speed: 230 * v.u * M.speed }); E.setStage(train); }
+      else { E.config({ axis: 'v', lineFrac: 0.5, speed: 260 * v.u * M.speed }); E.setStage(top); }
       kick();
     }
     function sizeCanvas() {
@@ -502,7 +517,7 @@
     $('spdIn').value = M.speed; $('spdIn').addEventListener('input', function (e) { M.speed = +e.target.value; save('speed'); applyEngine(); });
     $('sensIn').value = M.sens; $('sensIn').addEventListener('change', function (e) { M.sens = +e.target.value; save('sens'); redetect(); });
     function tog(id, key, after) { $(id).checked = !!M[key]; $(id).addEventListener('change', function (e) { M[key] = e.target.checked; save(key); if (after) after(); kick(); }); }
-    tog('optStream', 'stream', resetHunt); tog('optLine', 'line'); tog('optCall', 'callouts'); tog('optXray', 'xray', function () { top.clear(); });
+    tog('optStream', 'stream', resetHunt); tog('optLine', 'action'); tog('optCall', 'callouts'); tog('optXray', 'xray', function () { top.clear(); });
     $('songIn').addEventListener('change', function (e) { loadFile(e.target.files && e.target.files[0]); e.target.value = ''; });
     $('testBeat').addEventListener('click', useTestBeat);
     $('playBtn').addEventListener('click', function () { if (recording) return; audio.paused ? play() : pause(); });

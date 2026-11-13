@@ -119,6 +119,7 @@
     E.setTimeline = function (ev) { E.events = ev || []; };
     E.setStage = function (s) { E.stage = s; };
     E.line = line;
+    E.between = function (a, b) { return E.events.slice(lower(a), lower(b)); };
     E.posOf = place;
     E.range = function (t, v, margin) {
       var p = line(v), ta = t + (-margin - p) / (dir() * E.speed), tb = t + (len(v) + margin - p) / (dir() * E.speed);
