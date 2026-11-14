@@ -224,7 +224,58 @@
 
   /* ===== top down stage: the City Seek city scrolls under the camera like a flyover ===== */
   function makeTop(M) {
-    var world = null;
+    var world = null, surf = null;
+    /* a low resolution ground map of the city, so every beat object lands on a surface that suits it */
+    var GROUND = [[163, 171, 182, 1], [236, 229, 212, 2], [241, 235, 223, 2], [239, 226, 196, 2], [168, 216, 143, 3], [195, 200, 206, 4]];
+    function buildSurf() {
+      surf = null; if (!world) return;
+      try {
+        var sc = 1 / 6, mw = Math.ceil(world.W * sc), mh = Math.ceil(world.H * sc), cv = document.createElement('canvas');
+        cv.width = mw; cv.height = mh;
+        var g = cv.getContext('2d', { willReadFrequently: true }); g.setTransform(sc, 0, 0, sc, 0, 0);
+        world.items.forEach(function (it) { if (it.L <= 1 && !it.sh) { g.save(); try { it.f(g); } catch (e) { } g.restore(); } });
+        var px = g.getImageData(0, 0, mw, mh).data, d = new Uint8Array(mw * mh);
+        for (var i = 0; i < mw * mh; i++) {
+          var r = px[i * 4], gg = px[i * 4 + 1], b = px[i * 4 + 2], best = 0, bd = 260;
+          for (var k = 0; k < GROUND.length; k++) { var q = GROUND[k], dd = (r - q[0]) * (r - q[0]) + (gg - q[1]) * (gg - q[1]) + (b - q[2]) * (b - q[2]); if (dd < bd) { bd = dd; best = q[3]; } }
+          d[i] = best;
+        }
+        surf = { d: d, mw: mw, mh: mh, sc: sc };
+      } catch (e) { surf = null; }
+    }
+    function cls(wx, wy) { if (!surf) return 0; var x = Math.floor(wx * surf.sc), y = Math.floor(wy * surf.sc); if (x < 0 || y < 0 || x >= surf.mw || y >= surf.mh) return 0; return surf.d[y * surf.mw + x]; }
+    var OPTS = {
+      low: [[[3], 'tree', 12], [[2], 'umbrella', 8], [null, 'balloon', 0]],
+      mid: [[[1, 4], 'car', 13], [[2], 'umbrella', 8], [null, 'balloon', 0]],
+      high: [[[2], 'person', 5], [[3, 4], 'person', 5], [null, 'balloon', 0]]
+    };
+    function placeOf(ev, v) {
+      var s = v.zs, E = S.E, key = s + '|' + E.speed + '|' + v.w;
+      if (ev._pk === key) return ev._pl;
+      var H = world.H, uy = H * 0.85 - ev.t * (E.speed / s), k = Math.floor(uy / H), ly = uy - k * H, left = copyX(k) - v.w / 2 / s, span = v.w / s;
+      var opts = OPTS[ev.band].slice(), pl = null;
+      if (ev.band === 'high' && H01(ev.seed + 6) < 0.25) opts = [[null, 'balloon', 0]];
+      for (var o = 0; o < opts.length && !pl; o++) {
+        var want = opts[o][0], kind = opts[o][1], m = opts[o][2], cands = [];
+        if (!want) { pl = { x: span * (0.08 + 0.84 * H01(ev.seed + 11)), kind: kind, rot: 0 }; break; }
+        for (var x = left + 16; x < left + span - 16; x += 4) {
+          var c0 = cls(x, ly); if (want.indexOf(c0) < 0) continue;
+          var hz = want.indexOf(cls(x - m, ly)) >= 0 && want.indexOf(cls(x + m, ly)) >= 0, vt = want.indexOf(cls(x, ly - m)) >= 0 && want.indexOf(cls(x, ly + m)) >= 0;
+          if (hz && vt || (kind !== 'car' && (hz || vt)) || (kind === 'car' && (hz || vt))) cands.push(x);
+        }
+        if (!cands.length) continue;
+        var px2 = cands[ev.seed % cands.length], rot = H01(ev.seed + 1) * TAU;
+        if (kind === 'car' || kind === 'person') {
+          var run = function (dx, dy) { var n = 0; for (var q = 1; q <= 10; q++) { if (want.indexOf(cls(px2 + dx * q * 8, ly + dy * q * 8)) < 0) break; n++; } return n; };
+          var vert = run(0, -1) + run(0, 1), horz = run(-1, 0) + run(1, 0), alongV = vert >= horz;
+          rot = alongV ? (ev.seed % 2 ? 0 : Math.PI) : (ev.seed % 2 ? Math.PI / 2 : -Math.PI / 2);
+          if (kind === 'person') rot += (H01(ev.seed + 3) - 0.5) * 0.6;
+        }
+        pl = { x: px2 - left, kind: kind, rot: rot, max: 40 };
+        if (kind === 'tree') { var lim = 10; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var n = 0; for (var q = 1; q <= 10; q++) { if (cls(px2 + d[0] * q * 4, ly + d[1] * q * 4) !== 3) break; n++; } lim = Math.min(lim, n); }); pl.max = Math.max(9, lim * 4 - 2); }
+      }
+      pl.x *= s; ev._pl = pl; ev._pk = key; return pl;
+    }
     function vis(it, vs) { if (it.sh && vs < it.sh) return false; if (it.hd && vs > it.hd * 1.2) return false; return true; }
     function paint(g, x0, y0, x1, y1, vs) {
       var C = world.CELL, list = [], seen = world._mm || (world._mm = new Int32Array(world.items.length)), st = (world._ms = (world._ms || 0) + 1);
@@ -238,11 +289,11 @@
     }
     function copyX(k) { return world.W * (0.3 + 0.4 * H01(k * 977 + 5)); }
     var S = {
-      setWorld: function (w) { world = w; },
+      setWorld: function (w) { world = w; buildSurf(); },
       hasWorld: function () { return !!world; },
       clear: function () { },
       margin: function (v) { return 90 * v.u; },
-      cross: function (ev, v) { return v.w * (0.08 + 0.84 * H01(ev.seed + 11)); },
+      cross: function (ev, v) { return world && S.E ? placeOf(ev, v).x : v.w * (0.08 + 0.84 * H01(ev.seed + 11)); },
       size: function (ev, v) { var s = v.zs; return ev.band === 'low' ? (18 + 18 * ev.s) * s : ev.band === 'mid' ? 21 * s : 10 * s; },
       box: function (ev, x, y, size, v) { var hh = Math.max(size * 1.05, 16 * v.u); return [x - hh, y - hh, x + hh, y + hh]; },
       bg: function (c, t, v, E) {
@@ -262,27 +313,35 @@
       },
       sprites: {
         low: function (c, x, y, size, ev, v, age) {
-          var s = v.zs, pulse = age >= 0 && age < 0.25 ? 1 + 0.14 * (1 - age / 0.25) : 1;
+          var s = v.zs, pl = world && S.E ? placeOf(ev, v) : { kind: 'tree' }, pulse = age >= 0 && age < 0.25 ? 1 + 0.14 * (1 - age / 0.25) : 1;
           c.save(); c.translate(x, y); c.scale(s * pulse, s * pulse);
-          if (H01(ev.seed + 2) < 0.8) SP.tree(c, { r: size / s, col: col(v, pick(PAL.tree || ['#4f9d5a', '#5aa865', '#3f8a4c'], ev.seed)) });
-          else SP.tank(c, { r: size / s * 0.7 });
+          if (pl.kind === 'tree') SP.tree(c, { r: Math.min(size / s, pl.max || 40), col: col(v, pick(PAL.tree, ev.seed)) });
+          else if (pl.kind === 'umbrella') SP.umbrella(c, { col: col(v, pick(PAL.umb, ev.seed)), dots: ev.seed % 3 === 0, r: 14 });
+          else SP.balloon(c, { col: col(v, pick(PAL.balloon, ev.seed)) });
           c.restore();
           ring(c, x, y, size, age, v);
           callout(c, x, y - size - 6 * v.u, ev, v, age, { accent: v.look === 'muted' ? '#d98c6a' : '#1f6fff' });
         },
         mid: function (c, x, y, size, ev, v, age) {
-          var s = v.zs, r = H01(ev.seed + 4);
-          c.save(); c.translate(x, y); c.scale(s, s);
-          if (r < 0.65) { c.rotate(x < v.w / 2 ? 0 : Math.PI); SP.car(c, { col: col(v, pick(PAL.car, ev.seed)), taxi: r < 0.08 }); }
-          else { var uc = pick(PAL.umb || ['#1f6fff', '#e63946', '#ffd23f'], ev.seed); SP.umbrella(c, { col: col(v, uc), dots: false, r: 12 }); }
+          var s = v.zs, pl = world && S.E ? placeOf(ev, v) : { kind: 'car', rot: 0 }, lit = age >= 0 && age < 0.2;
+          c.save(); c.translate(x, y); c.scale(s, s); c.rotate(pl.rot || 0);
+          if (pl.kind === 'car') {
+            SP.car(c, { col: col(v, pick(PAL.car, ev.seed)), taxi: ev.seed % 11 === 0 });
+            if (lit) { c.globalAlpha = 1 - age / 0.2; c.fillStyle = '#fff6a0'; c.beginPath(); c.moveTo(-9, -21); c.lineTo(-16, -48); c.lineTo(-1, -48); c.closePath(); c.moveTo(9, -21); c.lineTo(16, -48); c.lineTo(1, -48); c.closePath(); c.fill(); c.globalAlpha = 1; }
+          } else if (pl.kind === 'umbrella') SP.umbrella(c, { col: col(v, pick(PAL.umb, ev.seed)), dots: false, r: 12 });
+          else SP.balloon(c, { col: col(v, pick(PAL.balloon, ev.seed)) });
           c.restore();
           ring(c, x, y, size * 0.9, age, v);
         },
         high: function (c, x, y, size, ev, v, age) {
-          var s = v.zs, r = H01(ev.seed + 6), hop = age >= 0 && age < 0.15 ? 1 + 0.6 * (1 - age / 0.15) : 1;
+          var s = v.zs, pl = world && S.E ? placeOf(ev, v) : { kind: 'person', rot: 0 }, hop = age >= 0 && age < 0.15 ? 1 + 0.6 * (1 - age / 0.15) : 1;
           c.save(); c.translate(x, y); c.scale(s * hop, s * hop);
-          if (r < 0.45) SP.balloon(c, { col: col(v, pick(PAL.balloon, ev.seed)) });
-          else { c.rotate(H01(ev.seed) * TAU); SP.person(c, { shirt: col(v, pick(PAL.shirt, ev.seed)), hair: pick(PAL.hair, ev.seed >>> 4), skin: PAL.skin ? pick(PAL.skin, ev.seed >>> 6) : undefined }); }
+          if (pl.kind === 'balloon') SP.balloon(c, { col: col(v, pick(PAL.balloon, ev.seed)) });
+          else {
+            c.rotate((pl.rot || 0) + Math.PI);
+            SP.person(c, { shirt: col(v, pick(PAL.shirt, ev.seed)), hair: pick(PAL.hair, ev.seed >>> 4), skin: pick(PAL.skin, ev.seed >>> 6) });
+            if (age >= 0 && age < 0.3) { var k = Math.min(1, age / 0.07), sc = (k < 1 ? backOut(k) : 1) * (age > 0.22 ? (0.3 - age) / 0.08 : 1); c.scale(sc, sc); SP.umbrella(c, { col: col(v, pick(PAL.umb, ev.seed >>> 3)), dots: ev.seed % 4 === 0, r: 11 }); }
+          }
           c.restore();
         }
       }
@@ -386,6 +445,7 @@
       action: store.get('cityseek-music-action', true), callouts: store.get('cityseek-music-callouts', true), xray: store.get('cityseek-music-xray', false)
     };
     var E = BeatEngine.create(), top = makeTop(M), lanes = makeLanes();
+    top.E = E;
     var audio = new Audio(); audio.preload = 'auto'; audio.setAttribute('playsinline', '');
     var ac = null, src = null, rec = null, recChunks = [], recording = false;
     var trackA = null, trackName = 'Test beat', trackUrl = null, ready = false, busy = false, active = false;
